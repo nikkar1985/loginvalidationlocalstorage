@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Auth System - Validation Edition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .auth-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 320px;
+            text-align: center;
+        }
+        h2 { color: #1c1e21; margin-bottom: 20px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { border-color: #1877f2; }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        .primary-btn { background: #1877f2; color: white; }
+        .primary-btn:hover { background: #166fe5; }
+        .secondary-btn { background: #42b72a; color: white; }
+        .secondary-btn:hover { background: #36a420; }
+        .toggle-link {
+            font-size: 14px;
+            color: #1877f2;
+            cursor: pointer;
+            text-decoration: underline;
+            display: block;
+            margin-top: 15px;
+        }
+        #welcome-msg { color: #27ae60; font-size: 18px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <div id="auth-ui">
+        <h2 id="form-title">Σύνδεση</h2>
+        <input type="text" id="username" placeholder="Όνομα χρήστη">
+        <input type="password" id="password" placeholder="Κωδικός πρόσβασης">
+
+        <input type="password" id="confirm-password" placeholder="Επιβεβαίωση κωδικού" style="display: none;">
+
+        <button class="primary-btn" id="main-btn">Είσοδος</button>
+        <span class="toggle-link" id="toggle-auth">Δεν έχετε λογαριασμό; Εγγραφή</span>
+    </div>
+
+    <div id="user-session" style="display: none;">
+        <h2>Καλωσήρθες!</h2>
+        <p id="welcome-msg"></p>
+        <button class="secondary-btn" id="logout-btn">Αποσύνδεση</button>
+    </div>
+</div>
+
+<script>
+    // Elements
+    const title = document.getElementById('form-title');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    // 2. ΠΡΟΣΘΗΚΗ: Σύνδεση με το νέο input στο JS
+    const confirmInput = document.getElementById('confirm-password');
+    const mainBtn = document.getElementById('main-btn');
+    const toggleLink = document.getElementById('toggle-auth');
+    const authUi = document.getElementById('auth-ui');
+    const userSession = document.getElementById('user-session');
+    const welcomeMsg = document.getElementById('welcome-msg');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    let isLoginMode = true;
+
+    // --- ΣΥΝΑΡΤΗΣΕΙΣ ---
+
+    function updateUI() {
+        if (isLoginMode) {
+            title.innerText = "Σύνδεση";
+            mainBtn.innerText = "Είσοδος";
+            toggleLink.innerText = "Δεν έχετε λογαριασμό; Εγγραφή";
+            // 3. ΠΡΟΣΘΗΚΗ: Κρύβουμε την επιβεβαίωση στο Login
+            confirmInput.style.display = "none";
+        } else {
+            title.innerText = "Εγγραφή";
+            mainBtn.innerText = "Δημιουργία Λογαριασμού";
+            toggleLink.innerText = "Έχετε ήδη λογαριασμό; Σύνδεση";
+            // 4. ΠΡΟΣΘΗΚΗ: Εμφανίζουμε την επιβεβαίωση στο Sign Up
+            confirmInput.style.display = "block";
+        }
+    }
+
+    // 5. ΠΡΟΣΘΗΚΗ: Νέα συνάρτηση Validation (Επικύρωση)
+    function validateForm(user, pass, confirmPass) {
+        // Έλεγχος μήκους ονόματος
+        if (user.length < 3) {
+            alert("Το όνομα χρήστη πρέπει να είναι τουλάχιστον 3 χαρακτήρες!");
+            return false;
+        }
+        // Έλεγχος μήκους κωδικού
+        if (pass.length < 6) {
+            alert("Ο κωδικός πρέπει να είναι τουλάχιστον 6 χαρακτήρες!");
+            return false;
+        }
+        // Έλεγχος αν οι κωδικοί ταιριάζουν (μόνο κατά την εγγραφή)
+        if (!isLoginMode && pass !== confirmPass) {
+            alert("Οι κωδικοί δεν ταιριάζουν!");
+            return false;
+        }
+        return true; // Αν όλα είναι οκ
+    }
+
+    function showSession(user) {
+        authUi.style.display = 'none';
+        userSession.style.display = 'block';
+        welcomeMsg.innerText = `Γεια σου, ${user}!`;
+    }
+
+    // 6. ΤΡΟΠΟΠΟΙΗΣΗ: Προσθήκη παραμέτρου confirmPass στην signUp
+    function signUp(user, pass, confirmPass) {
+        // Καλούμε το Validation πριν προχωρήσουμε
+        if (!validateForm(user, pass, confirmPass)) return;
+
+        let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+
+        if (users.find(u => u.username === user)) {
+            alert("Το όνομα χρήστη χρησιμοποιείται ήδη!");
+            return;
+        }
+
+        users.push({ username: user, password: pass });
+        localStorage.setItem('appUsers', JSON.stringify(users));
+
+        alert("Η εγγραφή πέτυχε! Τώρα μπορείτε να συνδεθείτε.");
+
+        usernameInput.value = "";
+        passwordInput.value = "";
+        confirmInput.value = ""; // Καθαρισμός νέου πεδίου
+        isLoginMode = true;
+        updateUI();
+    }
+
+    function login(user, pass) {
+        let users = JSON.parse(localStorage.getItem('appUsers')) || [];
+        const foundUser = users.find(u => u.username === user && u.password === pass);
+
+        if (foundUser) {
+            localStorage.setItem('loggedInUser', user);
+            showSession(user);
+        } else {
+            alert("Λάθος στοιχεία! Δοκιμάστε ξανά.");
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+
+    toggleLink.addEventListener('click', () => {
+        isLoginMode = !isLoginMode;
+        updateUI();
+    });
+
+    mainBtn.addEventListener('click', () => {
+        const user = usernameInput.value.trim();
+        const pass = passwordInput.value.trim();
+        // 7. ΠΡΟΣΘΗΚΗ: Λήψη της τιμής από το confirm input
+        const confirmPass = confirmInput.value.trim();
+
+        if (!user || !pass || (!isLoginMode && !confirmPass)) {
+            alert("Συμπλήρωσε όλα τα πεδία!");
+            return;
+        }
+
+        if (isLoginMode) {
+            login(user, pass);
+        } else {
+            // 8. ΤΡΟΠΟΠΟΙΗΣΗ: Περνάμε και την επιβεβαίωση στη συνάρτηση
+            signUp(user, pass, confirmPass);
+        }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('loggedInUser');
+        location.reload();
+    });
+
+    window.onload = () => {
+        const loggedIn = localStorage.getItem('loggedInUser');
+        if (loggedIn) {
+            showSession(loggedIn);
+        }
+    };
+</script>
+
+</body>
+</html>
